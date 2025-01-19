@@ -32,7 +32,7 @@ jobs:
           tags: |
             rafallltm/fake-shop:latest
             rafallltm/fake-shop:v${{ github.run_number }}
-            
+
   cd:
     runs-on: ubuntu-latest
     needs: ci
@@ -44,16 +44,27 @@ jobs:
     steps:
       # Fazer checkout do código
       - name: Checkout do codigo
-        run: echo "Fazendo checkout do código..."
+        uses: actions/checkout@v4
       
       # Autenticar na AWS
       - name: Autenticar na AWS
-        run: echo "Autenticando na AWS com chave de acesso e chave secreta..."
-      
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+          
       # Atualizar kubeconfig
       - name: Configurar kubectl
-        run: echo "Atualizando kubeconfig com o nome k8s-aws..."
-      
+        run: aws eks update-kubeconfig --name k8s-aws
+
       # Deploy no Kubernetes  
       - name: Deploy to Kubernetes
-        run: echo "Fazendo deploy no Kubernetes..."
+        uses: Azure/k8s-deploy@v5
+        with:
+          manifests: |
+           ./src/k8s/app-deployment.yaml
+           ./src/k8s/postgresql-deployment.yaml
+           ./src/prometheus/deploy-prometheus.yaml
+          images: |
+              rafallltm/fake-shop:v${{ github.run_number }}
